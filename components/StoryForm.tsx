@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { CHARACTERS, MORALS } from '@/lib/constants';
 import LoadingAnimation from './LoadingAnimation';
 import StoryResult from './StoryResult';
@@ -26,6 +26,13 @@ export default function StoryForm() {
   const [moral, setMoral] = useState('');
   const [wishes, setWishes] = useState('');
 
+  // Ref на верх блока — к нему скроллим при загрузке
+  const topRef = useRef<HTMLDivElement>(null);
+
+  const scrollToTop = () => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const toggleCharacter = (charName: string) => {
     setSelectedChars(prev => {
       if (prev.includes(charName)) return prev.filter(c => c !== charName);
@@ -40,7 +47,7 @@ export default function StoryForm() {
     if (!canSubmit) return;
     setError(null);
     setFormState('loading');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
 
     try {
       const res = await fetch('/api/generate', {
@@ -66,7 +73,7 @@ export default function StoryForm() {
       });
       setFormState('result');
       window.history.pushState({}, '', `/skazka/${data.slug}`);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToTop();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Что-то пошло не так');
       setFormState('form');
@@ -78,109 +85,112 @@ export default function StoryForm() {
     setStoryData(null);
     setError(null);
     window.history.pushState({}, '', '/');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollToTop();
   };
 
-  if (formState === 'loading') return <LoadingAnimation />;
-
-  if (formState === 'result' && storyData) {
-    return (
-      <StoryResult
-        slug={storyData.slug}
-        childName={storyData.childName}
-        characters={storyData.characters}
-        moral={storyData.moral}
-        storyText={storyData.storyText}
-        onCreateNew={handleCreateNew}
-      />
-    );
-  }
-
   return (
-    <div className="max-w-xl mx-auto flex flex-col gap-6">
-      <div className="text-center">
-        <h2 className="font-serif text-2xl text-fairy-purple-700 mb-1">Создайте свою сказку</h2>
-        <p className="text-fairy-purple-400 text-sm">Заполните форму — и волшебство начнётся!</p>
-      </div>
+    // ref на этот div — именно к нему будет скролл
+    <div ref={topRef}>
+      {formState === 'loading' && <LoadingAnimation />}
 
-      <div className="fairy-card">
-        <label className="block font-semibold text-fairy-purple-700 mb-2">
-          👶 Имя ребёнка <span className="text-fairy-pink-500">*</span>
-        </label>
-        <input type="text" value={childName} onChange={e => setChildName(e.target.value)}
-          placeholder="Например, Маша или Артём" maxLength={50}
-          className="w-full px-4 py-3 rounded-2xl border-2 border-fairy-purple-100 focus:border-fairy-purple-300 focus:outline-none bg-white/80 text-fairy-purple-800 placeholder:text-fairy-purple-200 transition-colors" />
-      </div>
-
-      <div className="fairy-card">
-        <label className="block font-semibold text-fairy-purple-700 mb-1">
-          🎭 Персонажи сказки <span className="text-fairy-pink-500">*</span>
-        </label>
-        <p className="text-xs text-fairy-purple-400 mb-4">
-          Выберите 2 или 3 персонажа
-          {selectedChars.length > 0 && (
-            <span className="ml-2 font-semibold text-fairy-purple-600">({selectedChars.length} выбрано)</span>
-          )}
-        </p>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-          {CHARACTERS.map(char => (
-            <button key={char.id} type="button" onClick={() => toggleCharacter(char.name)}
-              className={clsx('character-card', selectedChars.includes(char.name) && 'selected')}>
-              <span className="text-3xl">{char.emoji}</span>
-              <span className="text-xs font-medium text-fairy-purple-600 leading-tight text-center">{char.name}</span>
-              {selectedChars.includes(char.name) && (
-                <span className="text-xs text-fairy-purple-400">#{selectedChars.indexOf(char.name) + 1}</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="fairy-card">
-        <label className="block font-semibold text-fairy-purple-700 mb-2">
-          💫 Главная мысль сказки <span className="text-fairy-pink-500">*</span>
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          {MORALS.map(m => (
-            <button key={m} type="button" onClick={() => setMoral(m)}
-              className={clsx(
-                'text-left px-4 py-3 rounded-2xl border-2 transition-all duration-200 text-sm font-medium',
-                moral === m
-                  ? 'border-fairy-purple-400 bg-fairy-purple-50 text-fairy-purple-700'
-                  : 'border-fairy-purple-100 bg-white/60 text-fairy-purple-500 hover:border-fairy-purple-300 hover:bg-white'
-              )}>
-              {m}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="fairy-card">
-        <label className="block font-semibold text-fairy-purple-700 mb-2">
-          🌈 Особые пожелания{' '}
-          <span className="text-fairy-purple-300 font-normal text-sm">(необязательно)</span>
-        </label>
-        <textarea value={wishes} onChange={e => setWishes(e.target.value)}
-          placeholder="Например: ребёнок боится темноты, хочет про море, любит кошек..."
-          maxLength={200} rows={3}
-          className="w-full px-4 py-3 rounded-2xl border-2 border-fairy-purple-100 focus:border-fairy-purple-300 focus:outline-none bg-white/80 text-fairy-purple-800 placeholder:text-fairy-purple-200 transition-colors resize-none" />
-        <p className="text-right text-xs text-fairy-purple-300 mt-1">{wishes.length}/200</p>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-2xl text-sm">
-          ⚠️ {error}
-        </div>
+      {formState === 'result' && storyData && (
+        <StoryResult
+          slug={storyData.slug}
+          childName={storyData.childName}
+          characters={storyData.characters}
+          moral={storyData.moral}
+          storyText={storyData.storyText}
+          onCreateNew={handleCreateNew}
+        />
       )}
 
-      <button onClick={handleSubmit} disabled={!canSubmit}
-        className="btn-magic text-lg py-4 flex items-center justify-center gap-3">
-        <span>🪄</span>Создать сказку<span>✨</span>
-      </button>
+      {formState === 'form' && (
+        <div className="max-w-xl mx-auto flex flex-col gap-6">
+          <div className="text-center">
+            <h2 className="font-serif text-2xl text-fairy-purple-700 mb-1">Создайте свою сказку</h2>
+            <p className="text-fairy-purple-400 text-sm">Заполните форму — и волшебство начнётся!</p>
+          </div>
 
-      <p className="text-center text-xs text-fairy-purple-300">
-        Создание занимает ~20 секунд
-      </p>
+          <div className="fairy-card">
+            <label className="block font-semibold text-fairy-purple-700 mb-2">
+              👶 Имя ребёнка <span className="text-fairy-pink-500">*</span>
+            </label>
+            <input type="text" value={childName} onChange={e => setChildName(e.target.value)}
+              placeholder="Например, Маша или Артём" maxLength={50}
+              className="w-full px-4 py-3 rounded-2xl border-2 border-fairy-purple-100 focus:border-fairy-purple-300 focus:outline-none bg-white/80 text-fairy-purple-800 placeholder:text-fairy-purple-200 transition-colors" />
+          </div>
+
+          <div className="fairy-card">
+            <label className="block font-semibold text-fairy-purple-700 mb-1">
+              🎭 Персонажи сказки <span className="text-fairy-pink-500">*</span>
+            </label>
+            <p className="text-xs text-fairy-purple-400 mb-4">
+              Выберите 2 или 3 персонажа
+              {selectedChars.length > 0 && (
+                <span className="ml-2 font-semibold text-fairy-purple-600">({selectedChars.length} выбрано)</span>
+              )}
+            </p>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+              {CHARACTERS.map(char => (
+                <button key={char.id} type="button" onClick={() => toggleCharacter(char.name)}
+                  className={clsx('character-card', selectedChars.includes(char.name) && 'selected')}>
+                  <span className="text-3xl">{char.emoji}</span>
+                  <span className="text-xs font-medium text-fairy-purple-600 leading-tight text-center">{char.name}</span>
+                  {selectedChars.includes(char.name) && (
+                    <span className="text-xs text-fairy-purple-400">#{selectedChars.indexOf(char.name) + 1}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="fairy-card">
+            <label className="block font-semibold text-fairy-purple-700 mb-2">
+              💫 Главная мысль сказки <span className="text-fairy-pink-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {MORALS.map(m => (
+                <button key={m} type="button" onClick={() => setMoral(m)}
+                  className={clsx(
+                    'text-left px-4 py-3 rounded-2xl border-2 transition-all duration-200 text-sm font-medium',
+                    moral === m
+                      ? 'border-fairy-purple-400 bg-fairy-purple-50 text-fairy-purple-700'
+                      : 'border-fairy-purple-100 bg-white/60 text-fairy-purple-500 hover:border-fairy-purple-300 hover:bg-white'
+                  )}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="fairy-card">
+            <label className="block font-semibold text-fairy-purple-700 mb-2">
+              🌈 Особые пожелания{' '}
+              <span className="text-fairy-purple-300 font-normal text-sm">(необязательно)</span>
+            </label>
+            <textarea value={wishes} onChange={e => setWishes(e.target.value)}
+              placeholder="Например: ребёнок боится темноты, хочет про море, любит кошек..."
+              maxLength={200} rows={3}
+              className="w-full px-4 py-3 rounded-2xl border-2 border-fairy-purple-100 focus:border-fairy-purple-300 focus:outline-none bg-white/80 text-fairy-purple-800 placeholder:text-fairy-purple-200 transition-colors resize-none" />
+            <p className="text-right text-xs text-fairy-purple-300 mt-1">{wishes.length}/200</p>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-2xl text-sm">
+              ⚠️ {error}
+            </div>
+          )}
+
+          <button onClick={handleSubmit} disabled={!canSubmit}
+            className="btn-magic text-lg py-4 flex items-center justify-center gap-3">
+            <span>🪄</span>Создать сказку<span>✨</span>
+          </button>
+
+          <p className="text-center text-xs text-fairy-purple-300">
+            Создание занимает ~20 секунд
+          </p>
+        </div>
+      )}
     </div>
   );
 }
