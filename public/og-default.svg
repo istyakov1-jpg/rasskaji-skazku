@@ -1,0 +1,66 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF8F0"/>
+      <stop offset="50%" style="stop-color:#F3EEFF"/>
+      <stop offset="100%" style="stop-color:#FFE8F0"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7C5CBF"/>
+      <stop offset="100%" style="stop-color:#FF7FAB"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="100" cy="100" r="80" fill="rgba(155,123,232,0.08)"/>
+  <circle cx="1100" cy="530" r="120" fill="rgba(255,127,171,0.08)"/>
+  <circle cx="1050" cy="80" r="60" fill="rgba(249,199,79,0.12)"/>
+  <circle cx="150" cy="550" r="90" fill="rgba(155,123,232,0.06)"/>
+
+  <!-- Stars -->
+  <text x="120" y="200" font-size="32" opacity="0.4">✨</text>
+  <text x="1020" y="180" font-size="28" opacity="0.4">⭐</text>
+  <text x="600" y="80" font-size="24" opacity="0.3">💫</text>
+  <text x="200" y="480" font-size="20" opacity="0.3">🌟</text>
+  <text x="950" y="460" font-size="26" opacity="0.35">✨</text>
+
+  <!-- Main wand emoji -->
+  <text x="560" y="260" font-size="100" text-anchor="middle">🪄</text>
+
+  <!-- Title -->
+  <text
+    x="600"
+    y="360"
+    font-family="Georgia, serif"
+    font-size="72"
+    font-weight="bold"
+    fill="url(#title)"
+    text-anchor="middle"
+  >Расскажи Сказку</text>
+
+  <!-- Subtitle -->
+  <text
+    x="600"
+    y="420"
+    font-family="Arial, sans-serif"
+    font-size="28"
+    fill="#7C5CBF"
+    opacity="0.7"
+    text-anchor="middle"
+  >Персонализированные сказки для детей</text>
+
+  <!-- Characters -->
+  <text x="360" y="520" font-size="44" text-anchor="middle">🐰</text>
+  <text x="440" y="520" font-size="44" text-anchor="middle">🤖</text>
+  <text x="520" y="520" font-size="44" text-anchor="middle">👸</text>
+  <text x="600" y="520" font-size="44" text-anchor="middle">🐲</text>
+  <text x="680" y="520" font-size="44" text-anchor="middle">🧚</text>
+  <text x="760" y="520" font-size="44" text-anchor="middle">🐻</text>
+  <text x="840" y="520" font-size="44" text-anchor="middle">🧭</text>
+
+  <!-- Border -->
+  <rect x="40" y="40" width="1120" height="550" rx="24" fill="none" stroke="rgba(155,123,232,0.2)" stroke-width="2"/>
+</svg>
