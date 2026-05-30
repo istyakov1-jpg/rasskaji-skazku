@@ -74,8 +74,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Выберите 2 или 3 персонажа' }, { status: 400 });
 
     // Фикс: приводим к string[] через явный as, потом фильтруем через отдельный массив строк
+    const charSet = new Set<string>(validCharacterNames);
     const validatedChars = (characters as string[]).filter(
-      c => typeof c === 'string' && (validCharacterNames as string[]).includes(c)
+    c => typeof c === 'string' && charSet.has(c)
     );
     if (validatedChars.length !== characters.length)
       return NextResponse.json({ error: 'Недопустимый персонаж' }, { status: 400 });
