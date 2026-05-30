@@ -30,10 +30,12 @@ export async function POST(req: NextRequest) {
 
     // Если шер — инкрементим счётчик в stories
     if (event_type === 'share_clicked' && story_slug) {
-      await db.rpc('increment_share_count', { story_slug_param: story_slug }).catch(() => {
-        // Если RPC не создана — тихо игнорируем, основное событие уже записано
-      });
-    }
+  try {
+    await db.rpc('increment_share_count', { story_slug_param: story_slug });
+  } catch {
+    // RPC не создана — игнорируем
+  }
+}
 
     return NextResponse.json({ ok: true });
   } catch (err) {
