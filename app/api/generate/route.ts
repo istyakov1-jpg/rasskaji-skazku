@@ -7,17 +7,14 @@ import { trackEvent } from '@/lib/analytics';
 import { getSettings, buildIllustrationPrompt } from '@/lib/settings';
 
 export const runtime = 'nodejs';
-export const maxDuration = 180; // 3 минуты: сказка (~20с) + иллюстрация (~60с)
+export const maxDuration = 180;
 
 const KIE_API_KEY = process.env.KIE_API_KEY!;
 const validCharacterNames = CHARACTERS.map(c => c.name);
 const validMorals: readonly string[] = MORALS;
 
-// ── Генерация иллюстрации (встроена сюда, без отдельного API) ──
-
 async function generateIllustration(prompt: string): Promise<string | null> {
   try {
-    // Отправляем задачу
     const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${KIE_API_KEY}`, 'Content-Type': 'application/json' },
@@ -33,7 +30,6 @@ async function generateIllustration(prompt: string): Promise<string | null> {
     const taskId = JSON.parse(raw)?.data?.taskId;
     if (!taskId) return null;
 
-    // Поллинг (30 × 4с = 120с)
     for (let i = 1; i <= 30; i++) {
       await new Promise(r => setTimeout(r, 4000));
       const sr = await fetch(
@@ -43,7 +39,6 @@ async function generateIllustration(prompt: string): Promise<string | null> {
       const sd = JSON.parse(await sr.text());
       const state = String(sd?.data?.state ?? '').toLowerCase();
       console.log(`[illustration/poll #${i}] state=${state}`);
-
       if (state === 'success') {
         const url = JSON.parse(sd.data.resultJson ?? '{}')?.resultUrls?.[0];
         return url ?? null;
@@ -53,11 +48,9 @@ async function generateIllustration(prompt: string): Promise<string | null> {
     return null;
   } catch (e) {
     console.error('[illustration] error:', e);
-    return null; // Не ломаем генерацию сказки из-за иллюстрации
+    return null;
   }
 }
-
-// ── Основной обработчик ──────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
@@ -69,7 +62,6 @@ export async function POST(req: NextRequest) {
 
     const { childName, characters, moral, wishes } = body as Record<string, unknown>;
 
-    // Валидация
     if (!childName || typeof childName !== 'string')
       return NextResponse.json({ error: 'Укажите имя ребёнка' }, { status: 400 });
 
@@ -81,8 +73,9 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(characters) || characters.length < 2 || characters.length > 3)
       return NextResponse.json({ error: 'Выберите 2 или 3 персонажа' }, { status: 400 });
 
-    const validatedChars = (characters as unknown[]).filter(
-      (c): c is string => typeof c === 'string' && validCharacterNames.includes(c)
+    // Фикс: приводим к string[] через явный as, потом фильтруем через отдельный массив строк
+    const validatedChars = (characters as string[]).filter(
+      c => typeof c === 'string' && (validCharacterNames as string[]).includes(c)
     );
     if (validatedChars.length !== characters.length)
       return NextResponse.json({ error: 'Недопустимый персонаж' }, { status: 400 });
@@ -94,33 +87,26 @@ export async function POST(req: NextRequest) {
     if (cleanWishes && containsProfanity(cleanWishes))
       return NextResponse.json({ error: 'Пожалуйста, используйте подходящие пожелания' }, { status: 400 });
 
-    // Rate limit
     const settings = await getSettings();
     const { allowed, remaining } = await checkRateLimit(ip, settings.rate_limit_per_hour);
     if (!allowed)
       return NextResponse.json({ error: 'Вы создали слишком много сказок. Попробуйте через час!' }, { status: 429 });
 
-    // 1. Генерируем текст сказки
     console.log('[generate] generating story...');
     const storyText = await generateStory({
       childName: name, characters: validatedChars, moral, wishes: cleanWishes,
     });
     console.log('[generate] story done, generating illustration...');
 
-    // 2. Генерируем иллюстрацию параллельно с сохранением
     const illustrationPrompt = buildIllustrationPrompt(
       settings.illustration_prompt_template,
       storyText,
       validatedChars
     );
 
-    // Запускаем иллюстрацию и сохранение параллельно
-    const [illustrationUrl] = await Promise.all([
-      generateIllustration(illustrationPrompt),
-    ]);
+    const illustrationUrl = await generateIllustration(illustrationPrompt);
     console.log('[generate] illustration url:', illustrationUrl);
 
-    // 3. Сохраняем всё в Supabase
     const slug = generateSlug();
     const db = getServiceSupabase();
     const { data: story, error: dbError } = await db
@@ -143,7 +129,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ошибка при сохранении сказки' }, { status: 500 });
     }
 
-    // 4. Аналитика
     await trackEvent({ event_type: 'story_generated', story_slug: slug, moral, characters: validatedChars, ip, cost: settings.cost_per_story });
     if (illustrationUrl) {
       await trackEvent({ event_type: 'illustration_generated', story_slug: slug, ip, cost: settings.cost_per_illustration });
