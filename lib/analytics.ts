@@ -78,7 +78,7 @@ export async function getAnalytics(): Promise<AnalyticsData> {
     db.from('analytics_events').select('event_type, moral, characters, ip_hash, cost'),
     db.from('analytics_events').select('event_type, moral, characters, ip_hash, cost').gte('created_at', d7),
     db.from('analytics_events').select('event_type, created_at').gte('created_at', d14),
-    db.from('analytics_events').select('event_type, ip_hash, cost').gte('created_at', d30),
+    db.from('analytics_events').select('event_type, moral, characters, ip_hash, cost').gte('created_at', d30),
     db.from('stories').select('slug, child_name, characters, moral, tts_url, created_at').order('created_at', { ascending: false }).limit(20),
     db.from('app_settings').select('cost_per_story, cost_per_tts, cost_per_illustration, cost_currency').eq('id', 1).single(),
   ]);
