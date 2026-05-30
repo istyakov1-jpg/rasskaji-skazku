@@ -4,53 +4,13 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { checkRateLimit, getClientIP } from '@/lib/rateLimit';
 import { containsProfanity, generateSlug, CHARACTERS, MORALS } from '@/lib/constants';
 import { trackEvent } from '@/lib/analytics';
-import { getSettings, buildIllustrationPrompt } from '@/lib/settings';
+import { getSettings } from '@/lib/settings';
 
 export const runtime = 'nodejs';
-export const maxDuration = 180;
+export const maxDuration = 60; // Hobby: 60s, достаточно для сказки (~20s)
 
-const KIE_API_KEY = process.env.KIE_API_KEY!;
 const validCharacterNames = CHARACTERS.map(c => c.name);
 const validMorals: readonly string[] = MORALS;
-
-async function generateIllustration(prompt: string): Promise<string | null> {
-  try {
-    const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${KIE_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'flux-2/pro-text-to-image',
-        input: { prompt, aspect_ratio: '4:3', resolution: '1K', nsfw_checker: true },
-      }),
-    });
-    const raw = await res.text();
-    console.log('[illustration/submit] HTTP', res.status, raw.slice(0, 200));
-    if (!res.ok) return null;
-
-    const taskId = JSON.parse(raw)?.data?.taskId;
-    if (!taskId) return null;
-
-    for (let i = 1; i <= 30; i++) {
-      await new Promise(r => setTimeout(r, 4000));
-      const sr = await fetch(
-        `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`,
-        { headers: { 'Authorization': `Bearer ${KIE_API_KEY}` } }
-      );
-      const sd = JSON.parse(await sr.text());
-      const state = String(sd?.data?.state ?? '').toLowerCase();
-      console.log(`[illustration/poll #${i}] state=${state}`);
-      if (state === 'success') {
-        const url = JSON.parse(sd.data.resultJson ?? '{}')?.resultUrls?.[0];
-        return url ?? null;
-      }
-      if (state === 'fail') return null;
-    }
-    return null;
-  } catch (e) {
-    console.error('[illustration] error:', e);
-    return null;
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -73,10 +33,9 @@ export async function POST(req: NextRequest) {
     if (!Array.isArray(characters) || characters.length < 2 || characters.length > 3)
       return NextResponse.json({ error: 'Выберите 2 или 3 персонажа' }, { status: 400 });
 
-    // Фикс: приводим к string[] через явный as, потом фильтруем через отдельный массив строк
     const charSet = new Set<string>(validCharacterNames);
     const validatedChars = (characters as string[]).filter(
-    c => typeof c === 'string' && charSet.has(c)
+      c => typeof c === 'string' && charSet.has(c)
     );
     if (validatedChars.length !== characters.length)
       return NextResponse.json({ error: 'Недопустимый персонаж' }, { status: 400 });
@@ -93,21 +52,12 @@ export async function POST(req: NextRequest) {
     if (!allowed)
       return NextResponse.json({ error: 'Вы создали слишком много сказок. Попробуйте через час!' }, { status: 429 });
 
-    console.log('[generate] generating story...');
+    // Генерируем только текст сказки (~20s)
     const storyText = await generateStory({
       childName: name, characters: validatedChars, moral, wishes: cleanWishes,
     });
-    console.log('[generate] story done, generating illustration...');
 
-    const illustrationPrompt = buildIllustrationPrompt(
-      settings.illustration_prompt_template,
-      storyText,
-      validatedChars
-    );
-
-    const illustrationUrl = await generateIllustration(illustrationPrompt);
-    console.log('[generate] illustration url:', illustrationUrl);
-
+    // Сохраняем в Supabase (без иллюстрации — она придёт позже)
     const slug = generateSlug();
     const db = getServiceSupabase();
     const { data: story, error: dbError } = await db
@@ -119,8 +69,6 @@ export async function POST(req: NextRequest) {
         moral,
         wishes: cleanWishes || null,
         story_text: storyText,
-        illustration_url: illustrationUrl ?? null,
-        illustration_prompt: illustrationUrl ? illustrationPrompt : null,
       })
       .select()
       .single();
@@ -130,21 +78,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Ошибка при сохранении сказки' }, { status: 500 });
     }
 
-    await trackEvent({ event_type: 'story_generated', story_slug: slug, moral, characters: validatedChars, ip, cost: settings.cost_per_story });
-    if (illustrationUrl) {
-      await trackEvent({ event_type: 'illustration_generated', story_slug: slug, ip, cost: settings.cost_per_illustration });
-    }
+    await trackEvent({
+      event_type: 'story_generated',
+      story_slug: slug,
+      moral,
+      characters: validatedChars,
+      ip,
+      cost: settings.cost_per_story,
+    });
 
     return NextResponse.json(
-      {
-        slug: story.slug,
-        storyText,
-        childName: name,
-        characters: validatedChars,
-        moral,
-        illustrationUrl: illustrationUrl ?? null,
-        illustrationPrompt: illustrationUrl ? illustrationPrompt : null,
-      },
+      { slug: story.slug, storyText, childName: name, characters: validatedChars, moral },
       { headers: { 'X-RateLimit-Remaining': String(remaining) } }
     );
   } catch (err) {

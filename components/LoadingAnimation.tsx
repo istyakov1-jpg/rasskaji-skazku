@@ -11,18 +11,9 @@ const SPARKLE_POSITIONS = [
   { top: '55%', left: '90%', delay: '1.5s' },
 ];
 
-// Сообщения с примерным временем — сказка ~20с, иллюстрация ~60с
-const STEPS = [
-  { icon: '📖', text: 'Пишем сказку...', from: 0, to: 25 },
-  { icon: '✨', text: 'Добавляем волшебство...', from: 25, to: 40 },
-  { icon: '🎨', text: 'Рисуем иллюстрацию...', from: 40, to: 90 },
-  { icon: '🖼️', text: 'Финальные штрихи...', from: 90, to: 100 },
-];
-
 export default function LoadingAnimation() {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-8">
-      {/* Волшебная палочка */}
       <div className="relative w-48 h-48">
         {SPARKLE_POSITIONS.map((pos, i) => (
           <div key={i} className="absolute text-2xl sparkle-dot"
@@ -40,27 +31,16 @@ export default function LoadingAnimation() {
         </div>
       </div>
 
-      {/* Шаги с иконками */}
       <div className="text-center">
-        <h3 className="font-serif text-2xl text-fairy-purple-600 mb-4">Создаём сказку...</h3>
-        <div className="flex flex-col gap-3 text-left max-w-xs mx-auto">
-          {STEPS.map((step, i) => (
-            <div key={i} className="flex items-center gap-3 sparkle-dot"
-              style={{ animationDelay: `${i * 1.5}s`, animationDuration: `${STEPS.length * 1.5}s` }}>
-              <span className="text-xl w-8 text-center">{step.icon}</span>
-              <span className="text-sm text-fairy-purple-500">{step.text}</span>
-            </div>
-          ))}
-        </div>
+        <h3 className="font-serif text-2xl text-fairy-purple-600 mb-3">Создаём сказку...</h3>
+        <p className="text-fairy-purple-400 text-sm">Это займёт около 20 секунд</p>
       </div>
 
-      {/* Прогресс ~80 секунд */}
       <div className="w-64 flex flex-col gap-2">
         <div className="h-2 bg-fairy-purple-100 rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-fairy-purple-400 to-fairy-pink-500 rounded-full"
-            style={{ animation: 'progress 80s linear forwards' }} />
+            style={{ animation: 'progress 20s linear forwards' }} />
         </div>
-        <p className="text-xs text-center text-fairy-purple-300">~80 секунд — сказка + иллюстрация</p>
       </div>
 
       <style jsx>{`

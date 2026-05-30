@@ -14,7 +14,6 @@ interface StoryData {
   childName: string;
   characters: string[];
   moral: string;
-  illustrationUrl: string | null;
 }
 
 export default function StoryForm() {
@@ -64,10 +63,10 @@ export default function StoryForm() {
         childName: data.childName,
         characters: data.characters,
         moral: data.moral,
-        illustrationUrl: data.illustrationUrl ?? null,
       });
       setFormState('result');
       window.history.pushState({}, '', `/skazka/${data.slug}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Что-то пошло не так');
       setFormState('form');
@@ -92,7 +91,6 @@ export default function StoryForm() {
         characters={storyData.characters}
         moral={storyData.moral}
         storyText={storyData.storyText}
-        initialIllustrationUrl={storyData.illustrationUrl}
         onCreateNew={handleCreateNew}
       />
     );
@@ -105,7 +103,6 @@ export default function StoryForm() {
         <p className="text-fairy-purple-400 text-sm">Заполните форму — и волшебство начнётся!</p>
       </div>
 
-      {/* Имя */}
       <div className="fairy-card">
         <label className="block font-semibold text-fairy-purple-700 mb-2">
           👶 Имя ребёнка <span className="text-fairy-pink-500">*</span>
@@ -115,7 +112,6 @@ export default function StoryForm() {
           className="w-full px-4 py-3 rounded-2xl border-2 border-fairy-purple-100 focus:border-fairy-purple-300 focus:outline-none bg-white/80 text-fairy-purple-800 placeholder:text-fairy-purple-200 transition-colors" />
       </div>
 
-      {/* Персонажи */}
       <div className="fairy-card">
         <label className="block font-semibold text-fairy-purple-700 mb-1">
           🎭 Персонажи сказки <span className="text-fairy-pink-500">*</span>
@@ -140,7 +136,6 @@ export default function StoryForm() {
         </div>
       </div>
 
-      {/* Мораль */}
       <div className="fairy-card">
         <label className="block font-semibold text-fairy-purple-700 mb-2">
           💫 Главная мысль сказки <span className="text-fairy-pink-500">*</span>
@@ -160,7 +155,6 @@ export default function StoryForm() {
         </div>
       </div>
 
-      {/* Пожелания */}
       <div className="fairy-card">
         <label className="block font-semibold text-fairy-purple-700 mb-2">
           🌈 Особые пожелания{' '}
@@ -185,7 +179,7 @@ export default function StoryForm() {
       </button>
 
       <p className="text-center text-xs text-fairy-purple-300">
-        Создание занимает ~80 секунд — сказка + иллюстрация
+        Создание занимает ~20 секунд
       </p>
     </div>
   );

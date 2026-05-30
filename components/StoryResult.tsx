@@ -23,14 +23,8 @@ type TTSState =
   | { status: 'error'; message: string };
 
 export default function StoryResult({
-  slug,
-  childName,
-  characters,
-  moral,
-  storyText,
-  onCreateNew,
-  initialAudioUrl,
-  initialIllustrationUrl,
+  slug, childName, characters, moral, storyText, onCreateNew,
+  initialAudioUrl, initialIllustrationUrl,
 }: StoryResultProps) {
   const [ttsState, setTTSState] = useState<TTSState>(
     initialAudioUrl ? { status: 'ready', audioUrl: initialAudioUrl } : { status: 'idle' }
@@ -45,20 +39,14 @@ export default function StoryResult({
         body: JSON.stringify({ slug, storyText }),
       });
       const data = await res.json();
-      if (!res.ok || !data.audioUrl) throw new Error(data.error || 'Не удалось получить аудио');
+      if (!res.ok || !data.audioUrl) throw new Error(data.error || 'Ошибка');
       setTTSState({ status: 'ready', audioUrl: data.audioUrl });
     } catch (err) {
-      setTTSState({
-        status: 'error',
-        message: err instanceof Error ? err.message : 'Ошибка озвучки',
-      });
+      setTTSState({ status: 'error', message: err instanceof Error ? err.message : 'Ошибка озвучки' });
     }
   };
 
-  const paragraphs = storyText
-    .split(/\n\n+/)
-    .filter(p => p.trim())
-    .map(p => p.replace(/\n/g, ' '));
+  const paragraphs = storyText.split(/\n\n+/).filter(p => p.trim()).map(p => p.replace(/\n/g, ' '));
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
@@ -69,26 +57,23 @@ export default function StoryResult({
           Сказка про {childName}
         </h1>
         <div className="flex flex-wrap justify-center gap-2 text-sm text-fairy-purple-400">
-          <span className="bg-fairy-purple-50 px-3 py-1 rounded-full">
-            {characters.join(' · ')}
-          </span>
-          <span className="bg-fairy-gold-100 text-fairy-gold-700 px-3 py-1 rounded-full">
-            ✨ {moral}
-          </span>
+          <span className="bg-fairy-purple-50 px-3 py-1 rounded-full">{characters.join(' · ')}</span>
+          <span className="bg-fairy-gold-100 text-fairy-gold-700 px-3 py-1 rounded-full">✨ {moral}</span>
         </div>
       </div>
 
-      {/* Иллюстрация — показываем только если есть */}
-      {initialIllustrationUrl && (
-        <IllustrationBlock imageUrl={initialIllustrationUrl} />
-      )}
+      {/* Иллюстрация — автогенерируется клиентом если нет готовой */}
+      <IllustrationBlock
+        slug={slug}
+        storyText={storyText}
+        characters={characters}
+        initialImageUrl={initialIllustrationUrl}
+      />
 
       {/* Текст сказки */}
       <div className="fairy-card">
         <div className="story-text">
-          {paragraphs.map((para, i) => (
-            <p key={i}>{para}</p>
-          ))}
+          {paragraphs.map((para, i) => <p key={i}>{para}</p>)}
         </div>
         <div className="mt-6 pt-4 border-t border-fairy-purple-100 text-center">
           <p className="text-xs text-fairy-purple-300">
@@ -103,8 +88,7 @@ export default function StoryResult({
       {/* Озвучка */}
       <div>
         {ttsState.status === 'idle' && (
-          <button onClick={handleRequestTTS}
-            className="w-full btn-magic flex items-center justify-center gap-3 text-lg">
+          <button onClick={handleRequestTTS} className="w-full btn-magic flex items-center justify-center gap-3 text-lg">
             <span>🎙️</span>Послушать сказку
           </button>
         )}
@@ -124,17 +108,13 @@ export default function StoryResult({
         {ttsState.status === 'error' && (
           <div className="fairy-card text-center">
             <p className="text-red-400 mb-3 text-sm">⚠️ {ttsState.message}</p>
-            <button onClick={handleRequestTTS} className="btn-secondary text-sm">
-              Попробовать снова
-            </button>
+            <button onClick={handleRequestTTS} className="btn-secondary text-sm">Попробовать снова</button>
           </div>
         )}
       </div>
 
-      {/* Поделиться */}
       <ShareButtons slug={slug} childName={childName} />
 
-      {/* Создать ещё */}
       <div className="text-center pb-8">
         <button onClick={onCreateNew} className="btn-secondary flex items-center gap-2 mx-auto">
           <span>✨</span>Создать ещё одну сказку
