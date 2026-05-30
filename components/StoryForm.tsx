@@ -41,6 +41,7 @@ export default function StoryForm() {
     if (!canSubmit) return;
     setError(null);
     setFormState('loading');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     try {
       const res = await fetch('/api/generate', {
