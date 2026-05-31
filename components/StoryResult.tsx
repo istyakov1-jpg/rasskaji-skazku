@@ -50,6 +50,7 @@ export default function StoryResult({
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
+      {/* Заголовок */}
       <div className="text-center">
         <div className="text-5xl mb-3">📖</div>
         <h1 className="font-serif text-3xl md:text-4xl text-fairy-purple-700 mb-2">
@@ -61,11 +62,15 @@ export default function StoryResult({
         </div>
       </div>
 
-      {/* Иллюстрация — показываем только если готова */}
-      {initialIllustrationUrl && (
-        <IllustrationBlock imageUrl={initialIllustrationUrl} />
-      )}
+      {/* Иллюстрация — генерируется сама если нет готовой */}
+      <IllustrationBlock
+        slug={slug}
+        storyText={storyText}
+        characters={characters}
+        initialImageUrl={initialIllustrationUrl}
+      />
 
+      {/* Текст сказки */}
       <div className="fairy-card">
         <div className="story-text">
           {paragraphs.map((para, i) => <p key={i}>{para}</p>)}
@@ -80,22 +85,24 @@ export default function StoryResult({
         </div>
       </div>
 
+      {/* Озвучка */}
       <div>
         {ttsState.status === 'idle' && (
-          <button onClick={handleRequestTTS} className="w-full btn-magic flex items-center justify-center gap-3 text-lg">
+          <button onClick={handleRequestTTS}
+            className="w-full btn-magic flex items-center justify-center gap-3 text-lg">
             <span>🎙️</span>Послушать сказку
           </button>
         )}
         {ttsState.status === 'loading' && (
           <div className="fairy-card text-center py-8">
             <div className="flex justify-center gap-1 mb-4">
-              {[0, 1, 2].map(i => (
+              {[0,1,2].map(i => (
                 <div key={i} className="w-3 h-3 rounded-full bg-fairy-purple-400 animate-bounce"
                   style={{ animationDelay: `${i * 0.2}s` }} />
               ))}
             </div>
-            <p className="text-fairy-purple-600 font-semibold text-lg mb-1">🎙️ Генерируем озвучку...</p>
-            <p className="text-fairy-purple-400 text-sm">Подождите ~60 секунд</p>
+            <p className="text-fairy-purple-600 font-semibold text-lg mb-1">🎙️ Готовим озвучку...</p>
+            <p className="text-fairy-purple-400 text-sm">Совсем скоро!</p>
           </div>
         )}
         {ttsState.status === 'ready' && <AudioPlayer src={ttsState.audioUrl} />}
