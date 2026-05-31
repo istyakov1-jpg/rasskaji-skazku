@@ -14,11 +14,13 @@ interface StoryData {
   childName: string;
   characters: string[];
   moral: string;
+  illustrationUrl: string | null;
 }
 
 export default function StoryForm() {
   const [formState, setFormState] = useState<FormState>('form');
   const [storyData, setStoryData] = useState<StoryData | null>(null);
+  const [loadingStep, setLoadingStep] = useState<'story' | 'illustration'>('story');
   const [error, setError] = useState<string | null>(null);
 
   const [childName, setChildName] = useState('');
@@ -26,7 +28,6 @@ export default function StoryForm() {
   const [moral, setMoral] = useState('');
   const [wishes, setWishes] = useState('');
 
-  // Ref на верх блока — к нему скроллим при загрузке
   const topRef = useRef<HTMLDivElement>(null);
 
   const scrollToTop = () => {
@@ -43,13 +44,30 @@ export default function StoryForm() {
 
   const canSubmit = childName.trim().length >= 1 && selectedChars.length >= 2 && moral.length > 0;
 
+  // Поллинг иллюстрации — вызывается пока экран загрузки ещё показан
+  const pollIllustration = async (taskId: string, slug: string): Promise<string | null> => {
+    const maxAttempts = 20; // 20 × 4с = 80с
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, 4000));
+      try {
+        const res = await fetch(`/api/illustration-status?taskId=${encodeURIComponent(taskId)}&slug=${encodeURIComponent(slug)}`);
+        const data = await res.json();
+        if (data.status === 'completed' && data.imageUrl) return data.imageUrl;
+        if (data.status === 'failed') return null;
+      } catch {}
+    }
+    return null;
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setError(null);
+    setLoadingStep('story');
     setFormState('loading');
     scrollToTop();
 
     try {
+      // Шаг 1: генерируем сказку (сервер также сабмитит job иллюстрации)
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,12 +82,21 @@ export default function StoryForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка при создании сказки');
 
+      // Шаг 2: ждём иллюстрацию (пока показываем экран загрузки)
+      let illustrationUrl: string | null = null;
+      if (data.illustrationTaskId) {
+        setLoadingStep('illustration');
+        illustrationUrl = await pollIllustration(data.illustrationTaskId, data.slug);
+      }
+
+      // Шаг 3: всё готово — показываем страницу
       setStoryData({
         slug: data.slug,
         storyText: data.storyText,
         childName: data.childName,
         characters: data.characters,
         moral: data.moral,
+        illustrationUrl,
       });
       setFormState('result');
       window.history.pushState({}, '', `/skazka/${data.slug}`);
@@ -84,14 +111,14 @@ export default function StoryForm() {
     setFormState('form');
     setStoryData(null);
     setError(null);
+    setLoadingStep('story');
     window.history.pushState({}, '', '/');
     scrollToTop();
   };
 
   return (
-    // ref на этот div — именно к нему будет скролл
     <div ref={topRef}>
-      {formState === 'loading' && <LoadingAnimation />}
+      {formState === 'loading' && <LoadingAnimation step={loadingStep} />}
 
       {formState === 'result' && storyData && (
         <StoryResult
@@ -100,6 +127,7 @@ export default function StoryForm() {
           characters={storyData.characters}
           moral={storyData.moral}
           storyText={storyData.storyText}
+          initialIllustrationUrl={storyData.illustrationUrl}
           onCreateNew={handleCreateNew}
         />
       )}
@@ -187,7 +215,7 @@ export default function StoryForm() {
           </button>
 
           <p className="text-center text-xs text-fairy-purple-300">
-            Создание занимает ~20 секунд
+            Создание занимает ~80 секунд — сказка + иллюстрация
           </p>
         </div>
       )}

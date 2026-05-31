@@ -50,7 +50,6 @@ export default function StoryResult({
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
-      {/* Заголовок */}
       <div className="text-center">
         <div className="text-5xl mb-3">📖</div>
         <h1 className="font-serif text-3xl md:text-4xl text-fairy-purple-700 mb-2">
@@ -62,15 +61,11 @@ export default function StoryResult({
         </div>
       </div>
 
-      {/* Иллюстрация — автогенерируется клиентом если нет готовой */}
-      <IllustrationBlock
-        slug={slug}
-        storyText={storyText}
-        characters={characters}
-        initialImageUrl={initialIllustrationUrl}
-      />
+      {/* Иллюстрация — показываем только если готова */}
+      {initialIllustrationUrl && (
+        <IllustrationBlock imageUrl={initialIllustrationUrl} />
+      )}
 
-      {/* Текст сказки */}
       <div className="fairy-card">
         <div className="story-text">
           {paragraphs.map((para, i) => <p key={i}>{para}</p>)}
@@ -85,7 +80,6 @@ export default function StoryResult({
         </div>
       </div>
 
-      {/* Озвучка */}
       <div>
         {ttsState.status === 'idle' && (
           <button onClick={handleRequestTTS} className="w-full btn-magic flex items-center justify-center gap-3 text-lg">
