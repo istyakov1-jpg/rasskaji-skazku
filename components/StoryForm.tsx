@@ -21,6 +21,7 @@ export default function StoryForm() {
   const [formState, setFormState] = useState<FormState>('form');
   const [storyData, setStoryData] = useState<StoryData | null>(null);
   const [loadingStep, setLoadingStep] = useState<'story' | 'illustration'>('story');
+  const [currentChildName, setCurrentChildName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const [childName, setChildName] = useState('');
@@ -29,10 +30,7 @@ export default function StoryForm() {
   const [wishes, setWishes] = useState('');
 
   const topRef = useRef<HTMLDivElement>(null);
-
-  const scrollToTop = () => {
-    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const scrollToTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const toggleCharacter = (charName: string) => {
     setSelectedChars(prev => {
@@ -44,60 +42,53 @@ export default function StoryForm() {
 
   const canSubmit = childName.trim().length >= 1 && selectedChars.length >= 2 && moral.length > 0;
 
-  // Поллинг иллюстрации — вызывается пока экран загрузки ещё показан
   const pollIllustration = async (taskId: string, slug: string): Promise<string | null> => {
-    const maxAttempts = 20; // 20 × 4с = 80с
-    for (let i = 0; i < maxAttempts; i++) {
-      await new Promise(r => setTimeout(r, 4000));
+    for (let i = 0; i < 25; i++) {
+      await new Promise(r => setTimeout(r, 3000));
       try {
-        const res = await fetch(`/api/illustration-status?taskId=${encodeURIComponent(taskId)}&slug=${encodeURIComponent(slug)}`);
+        const res = await fetch(
+          `/api/illustration-status?taskId=${encodeURIComponent(taskId)}&slug=${encodeURIComponent(slug)}`,
+          { cache: 'no-store' }
+        );
         const data = await res.json();
+        console.log(`[poll illus #${i + 1}] status=${data.status} url=${data.imageUrl ?? '—'}`);
         if (data.status === 'completed' && data.imageUrl) return data.imageUrl;
         if (data.status === 'failed') return null;
-      } catch {}
+      } catch (e) {
+        console.warn('[poll illus] fetch error:', e);
+      }
     }
     return null;
   };
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
+    const name = childName.trim();
     setError(null);
+    setCurrentChildName(name);
     setLoadingStep('story');
     setFormState('loading');
     scrollToTop();
 
     try {
-      // Шаг 1: генерируем сказку (сервер также сабмитит job иллюстрации)
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          childName: childName.trim(),
-          characters: selectedChars,
-          moral,
-          wishes: wishes.trim() || undefined,
-        }),
+        body: JSON.stringify({ childName: name, characters: selectedChars, moral, wishes: wishes.trim() || undefined }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Ошибка при создании сказки');
 
-      // Шаг 2: ждём иллюстрацию (пока показываем экран загрузки)
+      console.log('[generate] response:', { slug: data.slug, hasTaskId: !!data.illustrationTaskId });
+
       let illustrationUrl: string | null = null;
       if (data.illustrationTaskId) {
         setLoadingStep('illustration');
         illustrationUrl = await pollIllustration(data.illustrationTaskId, data.slug);
+        console.log('[generate] illustration result:', illustrationUrl);
       }
 
-      // Шаг 3: всё готово — показываем страницу
-      setStoryData({
-        slug: data.slug,
-        storyText: data.storyText,
-        childName: data.childName,
-        characters: data.characters,
-        moral: data.moral,
-        illustrationUrl,
-      });
+      setStoryData({ slug: data.slug, storyText: data.storyText, childName: data.childName, characters: data.characters, moral: data.moral, illustrationUrl });
       setFormState('result');
       window.history.pushState({}, '', `/skazka/${data.slug}`);
       scrollToTop();
@@ -118,7 +109,9 @@ export default function StoryForm() {
 
   return (
     <div ref={topRef}>
-      {formState === 'loading' && <LoadingAnimation step={loadingStep} />}
+      {formState === 'loading' && (
+        <LoadingAnimation step={loadingStep} childName={currentChildName} />
+      )}
 
       {formState === 'result' && storyData && (
         <StoryResult
@@ -154,9 +147,7 @@ export default function StoryForm() {
             </label>
             <p className="text-xs text-fairy-purple-400 mb-4">
               Выберите 2 или 3 персонажа
-              {selectedChars.length > 0 && (
-                <span className="ml-2 font-semibold text-fairy-purple-600">({selectedChars.length} выбрано)</span>
-              )}
+              {selectedChars.length > 0 && <span className="ml-2 font-semibold text-fairy-purple-600">({selectedChars.length} выбрано)</span>}
             </p>
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
               {CHARACTERS.map(char => (
@@ -164,9 +155,7 @@ export default function StoryForm() {
                   className={clsx('character-card', selectedChars.includes(char.name) && 'selected')}>
                   <span className="text-3xl">{char.emoji}</span>
                   <span className="text-xs font-medium text-fairy-purple-600 leading-tight text-center">{char.name}</span>
-                  {selectedChars.includes(char.name) && (
-                    <span className="text-xs text-fairy-purple-400">#{selectedChars.indexOf(char.name) + 1}</span>
-                  )}
+                  {selectedChars.includes(char.name) && <span className="text-xs text-fairy-purple-400">#{selectedChars.indexOf(char.name) + 1}</span>}
                 </button>
               ))}
             </div>
@@ -181,20 +170,16 @@ export default function StoryForm() {
                 <button key={m} type="button" onClick={() => setMoral(m)}
                   className={clsx(
                     'text-left px-4 py-3 rounded-2xl border-2 transition-all duration-200 text-sm font-medium',
-                    moral === m
-                      ? 'border-fairy-purple-400 bg-fairy-purple-50 text-fairy-purple-700'
+                    moral === m ? 'border-fairy-purple-400 bg-fairy-purple-50 text-fairy-purple-700'
                       : 'border-fairy-purple-100 bg-white/60 text-fairy-purple-500 hover:border-fairy-purple-300 hover:bg-white'
-                  )}>
-                  {m}
-                </button>
+                  )}>{m}</button>
               ))}
             </div>
           </div>
 
           <div className="fairy-card">
             <label className="block font-semibold text-fairy-purple-700 mb-2">
-              🌈 Особые пожелания{' '}
-              <span className="text-fairy-purple-300 font-normal text-sm">(необязательно)</span>
+              🌈 Особые пожелания <span className="text-fairy-purple-300 font-normal text-sm">(необязательно)</span>
             </label>
             <textarea value={wishes} onChange={e => setWishes(e.target.value)}
               placeholder="Например: ребёнок боится темноты, хочет про море, любит кошек..."
@@ -204,9 +189,7 @@ export default function StoryForm() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-2xl text-sm">
-              ⚠️ {error}
-            </div>
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-2xl text-sm">⚠️ {error}</div>
           )}
 
           <button onClick={handleSubmit} disabled={!canSubmit}
@@ -214,9 +197,7 @@ export default function StoryForm() {
             <span>🪄</span>Создать сказку<span>✨</span>
           </button>
 
-          <p className="text-center text-xs text-fairy-purple-300">
-            Создание занимает ~80 секунд — сказка + иллюстрация
-          </p>
+          <p className="text-center text-xs text-fairy-purple-300">Создание занимает ~1–2 минуты</p>
         </div>
       )}
     </div>
