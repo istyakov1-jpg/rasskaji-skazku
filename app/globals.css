@@ -165,3 +165,17 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(200%); }
 }
+
+/* ──────────────────────────────────────────
+   Книжный стиль сказки
+────────────────────────────────────────── */
+.story-scene p:first-child::first-letter {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: #7C5CBF;
+  float: left;
+  line-height: 0.75;
+  margin-right: 6px;
+  margin-top: 4px;
+}
