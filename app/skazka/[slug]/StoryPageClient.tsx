@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import StoryResult from '@/components/StoryResult';
+import StoryResult from '@/components/StoryResultV2';
 import { Story } from '@/lib/supabase';
 
 interface Props { story: Story }
