@@ -3,92 +3,66 @@
 // ────────────────────────────────────────────────────────────
 
 export const CHARACTERS = [
-  { id: 'rabbit', emoji: '🐰', name: 'Зайчик' },
-  { id: 'robot', emoji: '🤖', name: 'Робот' },
-  { id: 'princess', emoji: '👸', name: 'Принцесса' },
-  { id: 'dragon', emoji: '🐲', name: 'Дракон' },
-  { id: 'pirate', emoji: '🧭', name: 'Пират' },
-  { id: 'fairy', emoji: '🧚', name: 'Фея' },
-  { id: 'bear', emoji: '🐻', name: 'Мишка' },
+  { id: 'dragon',    emoji: '🐉', name: 'Дракон' },
+  { id: 'robot',     emoji: '🤖', name: 'Робот' },
+  { id: 'princess',  emoji: '👸', name: 'Принцесса' },
+  { id: 'unicorn',   emoji: '🦄', name: 'Единорог' },
+  { id: 'dinosaur',  emoji: '🦕', name: 'Динозавр' },
+  { id: 'rabbit',    emoji: '🐰', name: 'Зайчик' },
+  { id: 'astronaut', emoji: '👨‍🚀', name: 'Космонавт' },
+  { id: 'fairy',     emoji: '🧚', name: 'Фея' },
+  { id: 'bear',      emoji: '🐻', name: 'Мишка' },
 ] as const;
 
 export type CharacterId = typeof CHARACTERS[number]['id'];
 
 // ────────────────────────────────────────────────────────────
-// МОРАЛИ / ПОСЫЛЫ
+// ТЕМЫ / МОРАЛИ
 // ────────────────────────────────────────────────────────────
 
 export const MORALS = [
-  'Добро побеждает зло',
-  'Дружба важна',
-  'Помогать другим',
-  'Не сдаваться',
-  'Верить в себя',
-  'Беречь природу',
+  { id: 'friendship', label: 'Дружба',              desc: 'Настоящий друг всегда рядом',       emoji: '🤝' },
+  { id: 'bravery',    label: 'Смелость',             desc: 'Страх можно победить',              emoji: '🦁' },
+  { id: 'honesty',    label: 'Честность',            desc: 'Правда всегда побеждает',           emoji: '💎' },
+  { id: 'care',       label: 'Забота',               desc: 'Помогать другим — это здорово',     emoji: '💛' },
+  { id: 'confidence', label: 'Уверенность в себе',   desc: 'Ты можешь всё, что захочешь',       emoji: '⭐' },
+  { id: 'persistence',label: 'Не сдаваться',         desc: 'Упорство приводит к победе',        emoji: '🏆' },
 ] as const;
 
-export type Moral = typeof MORALS[number];
+export type MoralId = typeof MORALS[number]['id'];
+
+// Для API — плоский список меток (обратная совместимость)
+export const MORAL_LABELS = MORALS.map(m => m.label);
 
 // ────────────────────────────────────────────────────────────
-// ФИЛЬТР НЕЖЕЛАТЕЛЬНЫХ СЛОВ (базовый)
+// ВОЗРАСТ
+// ────────────────────────────────────────────────────────────
+
+export const AGE_GROUPS = [
+  { id: '2-4', label: '2–4 года',  hint: 'Совсем маленький' },
+  { id: '5-7', label: '5–7 лет',   hint: 'Дошкольник' },
+  { id: '8-10', label: '8–10 лет', hint: 'Младший школьник' },
+] as const;
+
+// ────────────────────────────────────────────────────────────
+// ФИЛЬТР НЕЖЕЛАТЕЛЬНЫХ СЛОВ
 // ────────────────────────────────────────────────────────────
 
 const BAD_WORDS = [
-  'хуй', 'пизд', 'ебл', 'еба', 'ёба', 'блять', 'блядь', 'сука', 'мудак',
-  'пидор', 'пидар', 'залупа', 'шлюха', 'ёбан', 'хер', 'хрен', 'жопа',
-  'cock', 'fuck', 'shit', 'bitch', 'ass', 'dick', 'cunt', 'nigger',
+  'хуй','пизд','ебл','еба','ёба','блять','блядь','сука','мудак',
+  'пидор','пидар','залупа','шлюха','ёбан','жопа',
+  'cock','fuck','shit','bitch','ass','dick','cunt',
 ];
 
 export function containsProfanity(text: string): boolean {
-  const normalized = text.toLowerCase();
-  return BAD_WORDS.some(word => normalized.includes(word));
+  const n = text.toLowerCase();
+  return BAD_WORDS.some(w => n.includes(w));
 }
 
 // ────────────────────────────────────────────────────────────
-// ПРИМЕРЫ СКАЗОК (захардкоженные для галереи)
-// ────────────────────────────────────────────────────────────
-
-export const EXAMPLE_STORIES = [
-  {
-    id: 'example-1',
-    childName: 'Маша',
-    characters: ['Зайчик', 'Мишка'],
-    moral: 'Дружба важна',
-    preview: 'Маша жила в уютном домике на краю волшебного леса. Лучшим её другом был весёлый Зайчик с длинными ушками...',
-    emoji: '🐰🐻',
-  },
-  {
-    id: 'example-2',
-    childName: 'Артём',
-    characters: ['Робот', 'Дракон'],
-    moral: 'Верить в себя',
-    preview: 'Маленький робот Рики умел делать много всего — считать звёзды, петь песенки и строить замки из кубиков...',
-    emoji: '🤖🐲',
-  },
-  {
-    id: 'example-3',
-    childName: 'Соня',
-    characters: ['Принцесса', 'Фея'],
-    moral: 'Добро побеждает зло',
-    preview: 'В королевстве Радужных облаков жила добрая принцесса Соня. Каждое утро она выходила в сад и кормила птиц...',
-    emoji: '👸🧚',
-  },
-  {
-    id: 'example-4',
-    childName: 'Лёва',
-    characters: ['Пират', 'Фея', 'Зайчик'],
-    moral: 'Беречь природу',
-    preview: 'Весёлый пират Лёва плавал по Изумрудному морю на своём кораблике и собирал не сокровища, а мусор...',
-    emoji: '🧭🧚🐰',
-  },
-];
-
-// ────────────────────────────────────────────────────────────
-// ГЕНЕРАЦИЯ SLUG
+// SLUG
 // ────────────────────────────────────────────────────────────
 
 export function generateSlug(): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 6);
-  return `${timestamp}-${random}`;
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
 }
