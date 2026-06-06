@@ -40,8 +40,7 @@ export async function POST(req: NextRequest) {
     // Валидация морали (принимаем и новый формат label и старый)
     if (!moral || typeof moral !== 'string')
       return NextResponse.json({ error: 'Выберите тему сказки' }, { status: 400 });
-    if (!MORAL_LABELS.includes(moral) && !['Добро побеждает зло','Беречь природу','Помогать другим'].includes(moral))
-      return NextResponse.json({ error: 'Неверная тема' }, { status: 400 });
+    if (!(MORAL_LABELS as string[]).includes(moral) && !['Добро побеждает зло','Беречь природу','Помогать другим'].includes(moral))      return NextResponse.json({ error: 'Неверная тема' }, { status: 400 });
 
     const cleanWishes = wishes && typeof wishes === 'string' ? wishes.trim().slice(0, 200) : undefined;
     if (cleanWishes && containsProfanity(cleanWishes))
